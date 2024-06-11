@@ -1,0 +1,68 @@
+/*
+   ____       ____ _   _  ____   ____        __ _                 
+  / ___|     / ___| \ | |/ ___| |  _ \  ___ / _(_)_ __   ___  ___ 
+ | |   _____| |   |  \| | |     | | | |/ _ \ |_| | '_ \ / _ \/ __|
+ | |__|_____| |___| |\  | |___  | |_| |  __/  _| | | | |  __/\__ \
+  \____|     \____|_| \_|\____| |____/ \___|_| |_|_| |_|\___||___/
+                                                                  
+*/
+#ifndef DEFINES_H
+#define DEFINES_H
+
+// Common includes
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <sys/errno.h>
+
+// LABELS
+#define VERSION "@VERSION@"
+#define BUILD_TYPE "@CMAKE_BUILD_TYPE@"
+
+// Colors
+// printf(BRED "This is in bold red" CRESET " this is back to normal");
+
+#define BLK "\e[0;30m"
+#define RED "\e[0;31m"
+#define GRN "\e[0;32m"
+#define YEL "\e[0;33m"
+#define BLU "\e[0;34m"
+
+#define BBLK "\e[1;30m"
+#define BRED "\e[1;31m"
+#define BGRN "\e[1;32m"
+#define BYEL "\e[1;33m"
+#define BBLU "\e[1;34m"
+
+#define CRESET "\e[0m"
+
+// Custom data types
+typedef double data_t;
+
+typedef enum {
+  NO_ERR = 0,
+  ALLOC_ERR,
+  NOCOMMAND_ERR,
+  ARC_ERR,
+  FILE_ERR,
+  PARSE_ERR,
+  MQTT_ERR,
+  UNKNOWN_ERR
+} ccnc_error_t;
+
+// Macro functions
+
+#define eprintf(m, ...) fprintf(stderr, BRED "*** ERROR: " CRESET m, ##__VA_ARGS__)
+
+#ifdef DEBUG
+#define wprintf(m, ...) fprintf(stderr, BYEL "*** WARNING: " CRESET m, ##__VA_ARGS__)
+
+#define iprintf(m, ...) fprintf(stderr, BGRN "*** INFO: " CRESET m, ##__VA_ARGS__)
+#else
+#define wprintf(...)
+#define iprintf(...)
+#endif
+
+#endif // DEFINES_H

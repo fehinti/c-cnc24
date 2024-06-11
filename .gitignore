@@ -1,0 +1,27 @@
+# Files to be ignored when using git
+
+# temporary files
+*.o
+*.a
+slprj/
+*.slxc
+*.dSYM
+*.txt
+.venv
+*:Zone.Identifier
+usr/
+
+
+# OS generated files
+.DS_Store
+src/defines.h
+
+# Output and log files
+/*.csv
+*.png
+
+# Visual Studio Code
+.vscode
+
+# Cmake build directory and generated files
+/*build*
