@@ -77,17 +77,23 @@ void program_print(program_t *p, FILE *output) {
 }
 
 /* Accessors ******************************************************************/
-#define program_getter(typ, par, name)                                         \
-  typ program_##name(program_t const *p) {                                     \
-    assert(p);                                                                 \
-    return p->par;                                                             \
-  }
+// #define program_getter(typ, par, name)                                         \
+//   typ program_##name(program_t const *p) {                                     \
+//     assert(p);                                                                 \
+//     return p->par;                                                             \
+//   }
 
-program_getter(char *, filename, filename);
-program_getter(size_t, n, length);
-program_getter(block_t *, first, first);
-program_getter(block_t *, current, current);
-program_getter(block_t *, last, last);
+// program_getter(char *, filename, filename);
+// program_getter(size_t, n, length);
+// program_getter(block_t *, first, first);
+// program_getter(block_t *, current, current);
+// program_getter(block_t *, last, last);
+
+class_getter(program, program_t, char *, filename, filename);
+class_getter(program, program_t, size_t, n, length);
+class_getter(program, program_t, block_t *, first, first);
+class_getter(program, program_t, block_t *, current, current);
+class_getter(program, program_t, block_t *, last, last);
 
 /* Methods ********************************************************************/
 ccnc_error_t program_parse(program_t *p, machine_t const *m) {

@@ -207,22 +207,32 @@ void machine_free(machine_t *m) {
 
 /* ACCESSORS ******************************************************************/
 
-#define machine_getter(typ, par)                                               \
-  typ machine_##par(machine_t const *m) {                                      \
-    assert(m);                                                                 \
-    return m->par;                                                             \
-  }
+// #define machine_getter(typ, par)                                               \
+//   typ machine_##par(machine_t const *m) {                                      \
+//     assert(m);                                                                 \
+//     return m->par;                                                             \
+//   }
 
-machine_getter(data_t, A);
-machine_getter(data_t, tq);
-machine_getter(data_t, max_error);
-machine_getter(data_t, error);
-machine_getter(data_t, fmax);
-machine_getter(data_t, rt_pacing);
-machine_getter(point_t *, zero);
-machine_getter(point_t *, setpoint);
-machine_getter(point_t *, position);
-machine_getter(int, connecting);
+// machine_getter(data_t, A);
+// machine_getter(data_t, tq);
+// machine_getter(data_t, max_error);
+// machine_getter(data_t, error);
+// machine_getter(data_t, fmax);
+// machine_getter(data_t, rt_pacing);
+// machine_getter(point_t *, zero);
+// machine_getter(point_t *, setpoint);
+// machine_getter(point_t *, position);
+// machine_getter(int, connecting);
+
+class_getter(machine, machine_t, data_t, A, A);
+class_getter(machine, machine_t, data_t, tq, tq);
+class_getter(machine, machine_t, data_t, max_error, max_error);
+class_getter(machine, machine_t, data_t, error, error);
+class_getter(machine, machine_t, data_t, fmax, fmax);
+class_getter(machine, machine_t, point_t *, zero, zero);
+class_getter(machine, machine_t, point_t *, setpoint, setpoint);
+class_getter(machine, machine_t, point_t *, position, position);
+class_getter(machine, machine_t, int, connecting, connecting);
 
 /* METHODS ********************************************************************/
 

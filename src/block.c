@@ -148,22 +148,33 @@ void block_print(block_t const *b, FILE *out) {
 
 /* ACCESSORS ******************************************************************/
 
-#define block_getter(typ, par, name)                                           \
-  typ block_##name(block_t const *b) {                                         \
-    assert(b);                                                                 \
-    return b->par;                                                             \
-  }
+// #define block_getter(typ, par, name)                                           \
+//   typ block_##name(block_t const *b) {                                         \
+//     assert(b);                                                                 \
+//     return b->par;                                                             \
+//   }
 
-block_getter(data_t, length, length);
-block_getter(data_t, dtheta, dtheta);
-block_getter(block_type_t, type, type);
-block_getter(data_t, prof->dt, dt);
-block_getter(char *, line, line);
-block_getter(size_t, n, n);
-block_getter(data_t, r, r);
-block_getter(point_t *, center, center);
-block_getter(point_t *, target, target);
-block_getter(block_t *, next, next);
+// block_getter(data_t, length, length);
+// block_getter(data_t, dtheta, dtheta);
+// block_getter(block_type_t, type, type);
+// block_getter(data_t, prof->dt, dt);
+// block_getter(char *, line, line);
+// block_getter(size_t, n, n);
+// block_getter(data_t, r, r);
+// block_getter(point_t *, center, center);
+// block_getter(point_t *, target, target);
+// block_getter(block_t *, next, next);
+
+class_getter(block, block_t, data_t, length, length);
+class_getter(block, block_t, data_t, dtheta, dtheta);
+class_getter(block, block_t, block_type_t, type, type);
+class_getter(block, block_t, data_t, prof->dt, dt);
+class_getter(block, block_t, char *, line, line);
+class_getter(block, block_t, size_t, n, n);
+class_getter(block, block_t, data_t, r, r);
+class_getter(block, block_t, point_t *, center, center);
+class_getter(block, block_t, point_t *, target, target);
+class_getter(block, block_t, block_t *, next, next);
 
 /* METHODS ********************************************************************/
 

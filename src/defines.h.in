@@ -52,14 +52,6 @@ typedef enum {
   UNKNOWN_ERR
 } ccnc_error_t;
 
-// Universal Class Getter
-#define class_getter(cname, cstruct, typ, par, name) \
-  typ cname##_##name(cstruct const *obj)             \
-  {                                                       \
-    assert(obj);                                          \
-    return obj->par;                                      \
-  }
-
 // Macro functions
 
 #define eprintf(m, ...) fprintf(stderr, BRED "*** ERROR: " CRESET m, ##__VA_ARGS__)
@@ -72,5 +64,13 @@ typedef enum {
 #define wprintf(...)
 #define iprintf(...)
 #endif
+
+// Universal Class Getter
+#define class_getter(cname, cstruct, typ, par, name) \
+  typ cname##_##name(cstruct const *obj)             \
+  {                                                  \
+    assert(obj);                                     \
+    return obj->par;                                 \
+  }
 
 #endif // DEFINES_H
