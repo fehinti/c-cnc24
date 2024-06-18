@@ -110,6 +110,15 @@ block_t *block_new(char const *line, block_t *prev, machine_t const *machine) {
     eprintf("Could not parse block\n");
     goto fail;
   }
+
+  // Reset the arc parameters to enable the ARC check flag
+  if (b->i || b->j || b->r)
+  {
+    b->i = 0;
+    b->j = 0;
+    b->r = 0;
+  }
+
   return b;
 
 fail:
