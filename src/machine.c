@@ -228,7 +228,8 @@ class_getter(machine, machine_t, data_t, A, A);
 class_getter(machine, machine_t, data_t, tq, tq);
 class_getter(machine, machine_t, data_t, max_error, max_error);
 class_getter(machine, machine_t, data_t, error, error);
-class_getter(machine, machine_t, data_t, fmax, fmax);
+class_getter(machine, machine_t, data_t, fmax, fmax)
+class_getter(machine, machine_t, data_t, rt_pacing, rt_pacing)
 class_getter(machine, machine_t, point_t *, zero, zero);
 class_getter(machine, machine_t, point_t *, setpoint, setpoint);
 class_getter(machine, machine_t, point_t *, position, position);
