@@ -65,7 +65,9 @@ data_t block_lambda(block_t *b, data_t time, data_t *speed);
 point_t *block_interpolate(block_t *b, data_t lambda);
 point_t *block_interpolate_t(block_t *b, data_t time, data_t *lambda, data_t *speed);
 
-void block_compute(block_t *b);
+void block_velocities(block_t *b);
+void block_acceleration(block_t *b);
+void block_deceleration(block_t *b);
 
 
 

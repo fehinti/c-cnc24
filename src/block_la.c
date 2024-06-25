@@ -31,7 +31,6 @@ typedef struct {
 
 /***************************************************************************************************/
 // LOOK_AHEAD Implementation
-  data_t ds_1, ds_m, ds_2; // abscissa
   data_t v_i, v_m, v_f;
 /***************************************************************************************************/
 } block_profile_t;
@@ -112,17 +111,15 @@ block_t *block_new(char const *line, block_t *prev, machine_t const *machine) {
     eprintf("Could not allcate memory for G-code string\n");
     goto fail;
   }
+
+  // Clear i, j & r for double set flag
+  if (b->i) b->i = 0;
+  if (b->j) b->j = 0;
+  if (b->r) b->r = 0;
+
   if (block_parse(b) != NO_ERR) {
     eprintf("Could not parse block\n");
     goto fail;
-  }
-
-  // Reset the arc parameters to enable the ARC check flag
-  if (b->i || b->j || b->r)
-  {
-    b->i = 0;
-    b->j = 0;
-    b->r = 0;
   }
 
   return b;
@@ -415,37 +412,88 @@ static data_t quantize(data_t t, data_t tq, data_t *dq) {
 /***************************************************************************************************/
 // LOOK_AHEAD Implementation
 // static void block_compute(block_t *b) {
-void block_compute(block_t *b) {
+void block_velocities(block_t *b) {
   assert(b);
   data_t v_i, v_m, v_f;
-  data_t alpha;
+  data_t alpha, alpha_i;
 
-  point_t *temp = point_new();
-  if (!temp) {
-    eprintf("Could not allocate memory for temp point\n");
+  data_t seg_a, seg_b, seg_c;
+
+  point_t *vels = point_new();
+  if (!vels) {
+    eprintf("Could not allocate memory for vels point\n");
   }
 
   v_i = b->prev ? b->prev->prof->v_f : 0.0;
   v_m = b->arc_feedrate / 60.0;
 
   
-  if (v_m == 0.0)
+  if (v_m == 0.0) {
     v_f = 0.0;
-  else if (b->next) {
-    printf("1\n");
+  }  else if (b->next) {
     // delta of current segment and next segment
-    point_delta(b->target, b->next->target, temp);
-    alpha = MAX(0.0, 2 * atan2(point_y(temp), point_x(temp)));
+    seg_a = point_dist(start_point(b), b->target);
+    seg_b = point_dist(start_point(b->next), b->next->target);
+    seg_c = point_dist(start_point(b), b->next->target);
+
+    alpha_i = M_PI - acos((pow(seg_a, 2) + pow(seg_b, 2) - pow(seg_c, 2)) / (2 * seg_a * seg_b));
+    alpha_i = alpha_i < M_PI_2 ? alpha_i : M_PI_2;
+    alpha = MAX(0.0, cos(2 * alpha_i));
+
     // final velocity - based on scaled average of v_i of current and next segment
-    v_f = (v_m + b->next->prof->v_m) / 2 * cos(alpha);
-  }
-  else 
+    v_f = (v_m + (b->next->arc_feedrate / 60.0)) / 2 * alpha;
+  } else {
     v_f = 0.0;
+  }
+
+  point_set_xyz(vels, v_i, v_m, v_f);
+  char *vel = NULL;
+  point_inspect(vels, &vel);
+  fprintf(stderr, "%s\n", vel);
 
   b->prof->v_i = v_i;
   b->prof->v_m = v_m;
   b->prof->v_f = v_f;
-} 
+}
+
+void block_acceleration(block_t *b) {
+  assert(b);
+
+  data_t A, a_i, a_f;
+  data_t ds_1, ds_m, ds_2, s_f; // abscissa
+  data_t v_i, v_m, v_f;
+
+  A = b->acc;
+  v_i = b->prof->v_i;
+  v_m = b->prof->v_m;
+  v_f = b->prof->v_f;
+  s_f = b->length;              // total length of segment
+
+  // We have two cases => LONG SEGMENT (v_i < v_m) & SHORT SEGMENT (v)
+  //
+  // LONG SEGMENT -> [v_i < v_m]
+  if (v_i < v_m) {
+    if (v_f > v_m) {            // A -> v_f > v_m, s_0 < s_1 < s_2 < s_f
+      ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
+      ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
+      ds_m = s_f - (ds_1 + ds_2);
+    } else {                    // B -> v_f < v_m, s_0 < s_1 < s_f < s_2
+      ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
+      ds_2 = 0;
+      ds_m = s_f - (ds_1 + ds_2);
+    }
+  } else { // LONG SEGMENT -> [v_i > v_m]
+    if (v_f > v_m) {            // A -> v_f > v_m, s_1 < s_0 < s_2 < s_f
+      ds_1 = 0;
+      ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
+      ds_m = s_f - (ds_1 + ds_2);
+    } else {                    // B -> v_f < v_m, s_1 < s_0 < s_f < s_2
+      ds_1 = 0;
+      ds_2 = 0;
+      ds_m = s_f - (ds_1 + ds_2);
+    }
+  }
+}
 /***************************************************************************************************/
 
 

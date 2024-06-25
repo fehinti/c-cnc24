@@ -133,6 +133,14 @@ ccnc_error_t program_parse(program_t *p, machine_t const *m) {
     p->last = b;
     p->n++;
   }
+
+  // Compute velocities
+  // while (program_next(p))
+  // {
+  //   p->current
+  // }
+  
+
   fclose(file);
   free(line);
   program_reset(p);
@@ -151,7 +159,7 @@ block_t *program_next(program_t *p) {
   } else {
     p->current = block_next(p->current);
   }
-  block_compute(p->current);
+  block_velocities(p->current);
   return p->current;
 }
 
