@@ -53,7 +53,10 @@ ccnc_error_t program_parse(program_t *program, machine_t const *machine);
 void program_reset(program_t *program);
 block_t *program_next(program_t *program);
 
-
+/***************************************************************************************************/
+// LOOK_AHEAD Implementation
+void program_lookahead(program_t *program);
+/***************************************************************************************************/
 
 
 #endif // PROGRAM_H

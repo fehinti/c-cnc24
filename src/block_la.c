@@ -32,6 +32,7 @@ typedef struct {
 /***************************************************************************************************/
 // LOOK_AHEAD Implementation
   data_t v_i, v_m, v_f;
+  data_t ds_1, ds_m, ds_2;  // abscissa
 /***************************************************************************************************/
 } block_profile_t;
 
@@ -411,7 +412,7 @@ static data_t quantize(data_t t, data_t tq, data_t *dq) {
 
 /***************************************************************************************************/
 // LOOK_AHEAD Implementation
-// static void block_compute(block_t *b) {
+
 void block_velocities(block_t *b) {
   assert(b);
   data_t v_i, v_m, v_f;
@@ -459,9 +460,11 @@ void block_velocities(block_t *b) {
 void block_acceleration(block_t *b) {
   assert(b);
 
-  data_t A, a_i, a_f;
+  data_t A;
   data_t ds_1, ds_m, ds_2, s_f; // abscissa
   data_t v_i, v_m, v_f;
+
+  point_t *accl = point_new();
 
   A = b->acc;
   v_i = b->prof->v_i;
@@ -471,8 +474,15 @@ void block_acceleration(block_t *b) {
 
   // We have two cases => LONG SEGMENT (v_i < v_m) & SHORT SEGMENT (v)
   //
-  // LONG SEGMENT -> [v_i < v_m]
-  if (v_i < v_m) {
+  // test for short segment
+  ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
+  if (ds_1 > s_f) { // SHORT SEGMENT
+    ds_1 = s_f;
+    ds_2 = 0;
+    ds_m = 0;
+
+    iprintf("SHORT SEGMENT\n");
+  } else if (v_i < v_m) { // LONG SEGMENT -> [v_i < v_m]
     if (v_f > v_m) {            // A -> v_f > v_m, s_0 < s_1 < s_2 < s_f
       ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
       ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
@@ -482,6 +492,7 @@ void block_acceleration(block_t *b) {
       ds_2 = 0;
       ds_m = s_f - (ds_1 + ds_2);
     }
+  iprintf("LONG SEGMENT\n");
   } else { // LONG SEGMENT -> [v_i > v_m]
     if (v_f > v_m) {            // A -> v_f > v_m, s_1 < s_0 < s_2 < s_f
       ds_1 = 0;
@@ -492,8 +503,80 @@ void block_acceleration(block_t *b) {
       ds_2 = 0;
       ds_m = s_f - (ds_1 + ds_2);
     }
+  iprintf("LONG SEGMENT\n");
   }
+
+  point_set_xyz(accl, ds_1, ds_m, ds_2);
+  char *acc = NULL;
+  point_inspect(accl, &acc);
+  fprintf(stderr, "%s => %f\n", acc, s_f);
+
+  b->prof->ds_1 = ds_1;
+  b->prof->ds_2 = ds_2;
+  b->prof->ds_m = ds_m;
 }
+
+void block_deceleration(block_t *b) {
+  assert(b);
+
+  data_t A;
+  data_t ds_1, ds_m, ds_2, s_f; // abscissa
+  data_t v_i, v_m, v_f;
+
+  point_t *accl = point_new();
+
+  A = b->acc;
+  v_i = b->prof->v_i;
+  v_m = b->prof->v_m;
+  v_f = b->prof->v_f;
+  s_f = b->length;              // total length of segment
+
+  // We have two cases => LONG SEGMENT & SHORT SEGMENT
+  //
+  // test for short segment
+  ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
+
+  if ((fabs(ds_2) > s_f) && (v_f < v_m)) { // SHORT SEGMENT
+    ds_1 = 0;
+    ds_2 = -s_f;
+    ds_m = 0;
+
+    iprintf("SHORT SEGMENT\n");
+  } else if (v_f < v_m) { // LONG SEGMENT -> [v_i < v_m]
+    if (v_i > v_m) {            // A -> v_f > v_m, s_0 < s_1 < s_2 < s_f
+      ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
+      ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
+      ds_m = s_f - (- ds_1 - ds_2);
+    } else {                    // B -> v_f < v_m, s_0 < s_1 < s_f < s_2
+      ds_1 = b->prof->ds_1;
+      ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
+      ds_m = s_f - (ds_1 - ds_2);
+    }
+  iprintf("LONG SEGMENT\n");
+  } else { // LONG SEGMENT -> [v_i > v_m]
+    if (v_i > v_m) {            // A -> v_f > v_m, s_1 < s_0 < s_2 < s_f
+      ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
+      ds_2 = b->prof->ds_2;
+      ds_m = s_f - (- ds_1 + ds_2);
+    } else {                    // B -> v_f < v_m, s_1 < s_0 < s_f < s_2
+      ds_1 = b->prof->ds_1;
+      ds_2 = b->prof->ds_2;
+      ds_m = b->prof->ds_m;
+    }
+  iprintf("LONG SEGMENT\n");
+  }
+
+  point_set_xyz(accl, ds_1, ds_m, ds_2);
+  char *acc = NULL;
+  point_inspect(accl, &acc);
+  fprintf(stderr, "%s => %f\n", acc, s_f);
+
+  b->prof->ds_1 = ds_1;
+  b->prof->ds_2 = ds_2;
+  b->prof->ds_m = ds_m;
+
+}
+
 /***************************************************************************************************/
 
 

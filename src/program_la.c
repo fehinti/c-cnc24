@@ -159,10 +159,31 @@ block_t *program_next(program_t *p) {
   } else {
     p->current = block_next(p->current);
   }
-  block_velocities(p->current);
   return p->current;
 }
 
+/***************************************************************************************************/
+// LOOK_AHEAD Implementation
+void program_lookahead(program_t *p) {
+  assert(p);
+  block_t *b = NULL;
+  program_reset(p);
+
+  while ((b = program_next(p))) {
+    block_velocities(b);
+  }
+  b = NULL;
+  program_reset(p);
+  while ((b = program_next(p))) {
+    block_acceleration(b);
+  }
+  b = NULL;
+  program_reset(p);
+  while ((b = program_next(p))) {
+    block_deceleration(b);
+  }
+}
+/***************************************************************************************************/
 
 
 
@@ -202,7 +223,9 @@ int main(int argc, char const **argv) {
     eprintf("Error parsing the program\n");
     exit(EXIT_FAILURE);
   }
+  printf("%f\n", machine_A(m));
   program_print(p, stderr);
+  program_lookahead(p);
 
   tq = machine_tq(m);
   // run the program
