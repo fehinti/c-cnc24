@@ -162,6 +162,17 @@ block_t *program_next(program_t *p) {
   return p->current;
 }
 
+block_t *program_prev(program_t *p) {
+  assert(p);
+
+  if (p->current == NULL) { // last block
+    p->current = p->last;
+  } else {
+    p->current = block_prev(p->current);
+  }
+  return p->current;
+}
+
 /***************************************************************************************************/
 // LOOK_AHEAD Implementation
 void program_lookahead(program_t *p) {
@@ -170,18 +181,23 @@ void program_lookahead(program_t *p) {
   program_reset(p);
 
   while ((b = program_next(p))) {
+    if (!block_type(b)) continue;
     block_velocities(b);
   }
   b = NULL;
   program_reset(p);
   while ((b = program_next(p))) {
+    if (!block_type(b)) continue;
     block_acceleration(b);
   }
+
   b = NULL;
-  program_reset(p);
-  while ((b = program_next(p))) {
+
+  while ((b = program_prev(p))) {
+    if (!block_type(b)) continue;
     block_deceleration(b);
   }
+
 }
 /***************************************************************************************************/
 
@@ -223,7 +239,6 @@ int main(int argc, char const **argv) {
     eprintf("Error parsing the program\n");
     exit(EXIT_FAILURE);
   }
-  printf("%f\n", machine_A(m));
   program_print(p, stderr);
   program_lookahead(p);
 

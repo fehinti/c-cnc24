@@ -188,6 +188,7 @@ class_getter(block, block_t, data_t, r, r);
 class_getter(block, block_t, point_t *, center, center);
 class_getter(block, block_t, point_t *, target, target);
 class_getter(block, block_t, block_t *, next, next);
+class_getter(block, block_t, block_t *, prev, prev);
 
 /* METHODS ********************************************************************/
 
@@ -431,7 +432,7 @@ void block_velocities(block_t *b) {
   
   if (v_m == 0.0) {
     v_f = 0.0;
-  }  else if (b->next) {
+  }  else if (b->next && block_type(b->next)) {
     // delta of current segment and next segment
     seg_a = point_dist(start_point(b), b->target);
     seg_b = point_dist(start_point(b->next), b->next->target);
@@ -476,40 +477,45 @@ void block_acceleration(block_t *b) {
   //
   // test for short segment
   ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
-  if (ds_1 > s_f) { // SHORT SEGMENT
+  ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
+  if ((ds_1 > s_f) || (ds_2 > s_f)) { // SHORT SEGMENT
     ds_1 = s_f;
     ds_2 = 0;
-    ds_m = 0;
 
-    iprintf("SHORT SEGMENT\n");
+    b->prof->v_f = sqrtf((2 * A * ds_1) + pow(v_i, 2));
+
+    // if (b->next)
+    //   b->next->prof->v_i = b->prof->v_f;
+
+    // iprintf("SHORT SEGMENT\n");
   } else if (v_i < v_m) { // LONG SEGMENT -> [v_i < v_m]
     if (v_f > v_m) {            // A -> v_f > v_m, s_0 < s_1 < s_2 < s_f
       ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
       ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
-      ds_m = s_f - (ds_1 + ds_2);
     } else {                    // B -> v_f < v_m, s_0 < s_1 < s_f < s_2
       ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
       ds_2 = 0;
-      ds_m = s_f - (ds_1 + ds_2);
     }
-  iprintf("LONG SEGMENT\n");
+  // iprintf("LONG SEGMENT\n");
   } else { // LONG SEGMENT -> [v_i > v_m]
     if (v_f > v_m) {            // A -> v_f > v_m, s_1 < s_0 < s_2 < s_f
       ds_1 = 0;
       ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
-      ds_m = s_f - (ds_1 + ds_2);
     } else {                    // B -> v_f < v_m, s_1 < s_0 < s_f < s_2
       ds_1 = 0;
       ds_2 = 0;
-      ds_m = s_f - (ds_1 + ds_2);
     }
-  iprintf("LONG SEGMENT\n");
+
+  // iprintf("LONG SEGMENT\n");
   }
+
+  ds_m = s_f - (ds_1 + ds_2);
+
 
   point_set_xyz(accl, ds_1, ds_m, ds_2);
   char *acc = NULL;
   point_inspect(accl, &acc);
-  fprintf(stderr, "%s => %f\n", acc, s_f);
+  // fprintf(stderr, "%s => %f\n", acc, s_f);
 
   b->prof->ds_1 = ds_1;
   b->prof->ds_2 = ds_2;
@@ -524,56 +530,159 @@ void block_deceleration(block_t *b) {
   data_t v_i, v_m, v_f;
 
   point_t *accl = point_new();
+  point_t *vels = point_new();
+  if (!vels) {
+    eprintf("Could not allocate memory for vels point\n");
+  }
+
+  // if (!b->prev->type) b
+
 
   A = b->acc;
   v_i = b->prof->v_i;
-  v_m = b->prof->v_m;
+  v_m = b->prof->v_m;           // maintain/mid-level velocity
   v_f = b->prof->v_f;
   s_f = b->length;              // total length of segment
 
+  // ( 9 TOTAL POSSIBLE CASES )
+  // POS => 1   |   2   |   3
+  //        A       M       A
+  //        A                 
+  //                M   
+  //        D       M       D
+  //                        D
+  //        A       M       D
+  //        A               D
+  //        D               A
+  //        D       M       A
   // We have two cases => LONG SEGMENT & SHORT SEGMENT
   //
   // test for short segment
   ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
+  ds_m = 0;
+  ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
 
-  if ((fabs(ds_2) > s_f) && (v_f < v_m)) { // SHORT SEGMENT
+  if (((fabs(ds_2) > s_f) && (v_f < v_m)) || ((fabs(ds_1) > s_f) && (v_m < v_i))) { // SHORT SEGMENT \\ [D]
     ds_1 = 0;
     ds_2 = -s_f;
     ds_m = 0;
 
-    iprintf("SHORT SEGMENT\n");
-  } else if (v_f < v_m) { // LONG SEGMENT -> [v_i < v_m]
-    if (v_i > v_m) {            // A -> v_f > v_m, s_0 < s_1 < s_2 < s_f
+    // last segment/block in program has zero final velocity
+    if (!(block_type(b->next)))
+      v_f = 0;
+
+    // v_m = 0;
+    v_i = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+    // if (b->prev)
+    //   b->prev->prof->v_f = v_i;
+
+    // iprintf("SHORT SEGMENT -> %f\n", b->prev->prof->v_f);
+  } else if (v_f < v_m) { // LONG SEGMENT -> [v_f < v_m] // POSSIBLE CASE ends in [D]
+    // v_m  =  sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+
+    if (v_i > v_m) {            // A -> v_i > v_m, s_0 < s_1 < s_2 < s_f               [DMD / MD]
       ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
-      ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
       ds_m = s_f - (- ds_1 - ds_2);
-    } else {                    // B -> v_f < v_m, s_0 < s_1 < s_f < s_2
+      if (ds_m < 0) {
+        ds_1 = 0;
+        ds_m = 0;
+        ds_2 = -s_f;
+        v_i = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+      }
+    } else if (v_i < v_m) {                    // B -> v_i < v_m, s_0 < s_1 < s_f < s_2   [AMD / AD]
       ds_1 = b->prof->ds_1;
-      ds_2 = (pow(v_f, 2) - pow(v_m, 2)) / (2 * A);
       ds_m = s_f - (ds_1 - ds_2);
+      if (ds_m < 0) {
+        ds_1 = s_f / 2;
+        ds_m = 0;
+        ds_2 = -s_f / 2;
+        // v_m = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+        v_i = sqrtf(pow(v_m, 2) - (2 * A * ds_1));
+      }
+    } 
+    else {
+      ds_1 = 0;
+      ds_m = s_f - (ds_1 - ds_2);
+      // b->prev->prof->v_f = 
     }
-  iprintf("LONG SEGMENT\n");
-  } else { // LONG SEGMENT -> [v_i > v_m]
-    if (v_i > v_m) {            // A -> v_f > v_m, s_1 < s_0 < s_2 < s_f
+  // iprintf("LONG SEGMENT\n");
+  } else if (v_f > v_m) { // LONG SEGMENT -> [v_f > v_m] // POSSIBLE CASE ends in [A]
+    if (v_i > v_m) {            // A -> v_i > v_m, s_1 < s_0 < s_2 < s_f                  [DMA / DA]
       ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
-      ds_2 = b->prof->ds_2;
+      // ds_2 = b->prof->ds_2;
       ds_m = s_f - (- ds_1 + ds_2);
-    } else {                    // B -> v_f < v_m, s_1 < s_0 < s_f < s_2
+      if (ds_m < 0) {
+        ds_1 = -s_f / 2;
+        ds_m = 0;
+        ds_2 = s_f / 2;
+        // v_m = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+        v_i = sqrtf(pow(v_m, 2) - (2 * A * ds_1));
+      }
+    } else if (v_i < v_m) {                    // B -> v_i < v_m, s_1 < s_0 < s_f < s_2
       ds_1 = b->prof->ds_1;
-      ds_2 = b->prof->ds_2;
-      ds_m = b->prof->ds_m;
+      // ds_2 = b->prof->ds_2;
+      ds_m = s_f - (ds_1 + ds_2);;
+      if (ds_m < 0) {
+        ds_m = 0;
+        ds_1 = 0;
+        ds_2 = s_f;
+        v_i = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+        // b->prof->v_i = v_i;
+        // block_acceleration(b);
+        // ds_1 = b->prof->ds_1;
+        // ds_m = b->prof->ds_m;
+        // ds_2 = b->prof->ds_2;
+        // v_m = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+        // v_i = sqrtf(pow(v_m, 2) - (2 * A * ds_1));
+      }
+      // else {
+      //   ds_1 = b->prof->ds_1;
+      //   ds_m = s_f - (ds_1 + ds_2);
+      //   if (ds_m < 0) {
+      //     ds_m = 0;
+      //     ds_1 = 0;
+      //     ds_2 = s_f;
+      //     v_i = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+      //   }
+      // }
     }
-  iprintf("LONG SEGMENT\n");
+  // iprintf("LONG SEGMENT\n");
+  } else {
+    // ds_1 = b->prof->ds_1;
+    // ds_2 = b.pf
+    // ds_m = s_f - (ds_1 + ds_2);;
+    // if (ds_m < 0) {
+    //   ds_1 = s_f;
+    //   v_i = sqrtf(pow(v_f, 2) - (2 * A * ds_1));
+    //   b->prof->v_i = v_i;
+    //   block_acceleration(b);
+      ds_1 = b->prof->ds_1;
+      ds_m = b->prof->ds_m;
+      ds_2 = b->prof->ds_2;
+    // }
   }
+
+  if (b->prev)
+    b->prev->prof->v_f = v_i;
 
   point_set_xyz(accl, ds_1, ds_m, ds_2);
   char *acc = NULL;
   point_inspect(accl, &acc);
   fprintf(stderr, "%s => %f\n", acc, s_f);
 
+  point_set_xyz(vels, v_i, v_m, v_f);
+  char *vel = NULL;
+  point_inspect(vels, &vel);
+  fprintf(stderr, "%s\n\n", vel);
+
+
   b->prof->ds_1 = ds_1;
   b->prof->ds_2 = ds_2;
   b->prof->ds_m = ds_m;
+
+  b->prof->v_i = v_i;
+  b->prof->v_m = v_m;
+  b->prof->v_f = v_f;
 
 }
 
