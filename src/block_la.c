@@ -74,6 +74,11 @@ static ccnc_error_t block_arc(block_t *b);
 static data_t quantize(data_t t, data_t tq, data_t *dq);
 static ccnc_error_t block_parse(block_t *b);
 
+/***************************************************************************************************/
+// LOOK_AHEAD Implementation
+static data_t curvlin_to_time(data_t v_0, data_t a, data_t ds);
+/***************************************************************************************************/
+
 /* LIFECYCLE ******************************************************************/
 block_t *block_new(char const *line, block_t *prev, machine_t const *machine) {
   assert(line);
@@ -482,7 +487,7 @@ void block_acceleration(block_t *b) {
     ds_1 = s_f;
     ds_2 = 0;
 
-    b->prof->v_f = sqrtf((2 * A * ds_1) + pow(v_i, 2));
+    // b->prof->v_f = sqrt((2 * A * ds_1) + pow(v_i, 2));
 
     // if (b->next)
     //   b->next->prof->v_i = b->prof->v_f;
@@ -572,13 +577,13 @@ void block_deceleration(block_t *b) {
       v_f = 0;
 
     // v_m = 0;
-    v_i = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+    v_i = sqrt(pow(v_f, 2) - (2 * A * ds_2));
     // if (b->prev)
     //   b->prev->prof->v_f = v_i;
 
     // iprintf("SHORT SEGMENT -> %f\n", b->prev->prof->v_f);
   } else if (v_f < v_m) { // LONG SEGMENT -> [v_f < v_m] // POSSIBLE CASE ends in [D]
-    // v_m  =  sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+    // v_m  =  sqrt(pow(v_f, 2) - (2 * A * ds_2));
 
     if (v_i > v_m) {            // A -> v_i > v_m, s_0 < s_1 < s_2 < s_f               [DMD / MD]
       ds_1 = (pow(v_m, 2) - pow(v_i, 2)) / (2 * A);
@@ -587,7 +592,7 @@ void block_deceleration(block_t *b) {
         ds_1 = 0;
         ds_m = 0;
         ds_2 = -s_f;
-        v_i = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+        v_i = sqrt(pow(v_f, 2) - (2 * A * ds_2));
       }
     } else if (v_i < v_m) {                    // B -> v_i < v_m, s_0 < s_1 < s_f < s_2   [AMD / AD]
       ds_1 = b->prof->ds_1;
@@ -596,8 +601,8 @@ void block_deceleration(block_t *b) {
         ds_1 = s_f / 2;
         ds_m = 0;
         ds_2 = -s_f / 2;
-        // v_m = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
-        v_i = sqrtf(pow(v_m, 2) - (2 * A * ds_1));
+        // v_m = sqrt(pow(v_f, 2) - (2 * A * ds_2));
+        v_i = sqrt(pow(v_m, 2) - (2 * A * ds_1));
       }
     } 
     else {
@@ -615,8 +620,8 @@ void block_deceleration(block_t *b) {
         ds_1 = -s_f / 2;
         ds_m = 0;
         ds_2 = s_f / 2;
-        // v_m = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
-        v_i = sqrtf(pow(v_m, 2) - (2 * A * ds_1));
+        // v_m = sqrt(pow(v_f, 2) - (2 * A * ds_2));
+        v_i = sqrt(pow(v_m, 2) - (2 * A * ds_1));
       }
     } else if (v_i < v_m) {                    // B -> v_i < v_m, s_1 < s_0 < s_f < s_2
       ds_1 = b->prof->ds_1;
@@ -626,14 +631,14 @@ void block_deceleration(block_t *b) {
         ds_m = 0;
         ds_1 = 0;
         ds_2 = s_f;
-        v_i = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+        v_i = sqrt(pow(v_f, 2) - (2 * A * ds_2));
         // b->prof->v_i = v_i;
         // block_acceleration(b);
         // ds_1 = b->prof->ds_1;
         // ds_m = b->prof->ds_m;
         // ds_2 = b->prof->ds_2;
-        // v_m = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
-        // v_i = sqrtf(pow(v_m, 2) - (2 * A * ds_1));
+        // v_m = sqrt(pow(v_f, 2) - (2 * A * ds_2));
+        // v_i = sqrt(pow(v_m, 2) - (2 * A * ds_1));
       }
       // else {
       //   ds_1 = b->prof->ds_1;
@@ -642,7 +647,7 @@ void block_deceleration(block_t *b) {
       //     ds_m = 0;
       //     ds_1 = 0;
       //     ds_2 = s_f;
-      //     v_i = sqrtf(pow(v_f, 2) - (2 * A * ds_2));
+      //     v_i = sqrt(pow(v_f, 2) - (2 * A * ds_2));
       //   }
       // }
     }
@@ -653,7 +658,7 @@ void block_deceleration(block_t *b) {
     // ds_m = s_f - (ds_1 + ds_2);;
     // if (ds_m < 0) {
     //   ds_1 = s_f;
-    //   v_i = sqrtf(pow(v_f, 2) - (2 * A * ds_1));
+    //   v_i = sqrt(pow(v_f, 2) - (2 * A * ds_1));
     //   b->prof->v_i = v_i;
     //   block_acceleration(b);
       ds_1 = b->prof->ds_1;
@@ -686,6 +691,63 @@ void block_deceleration(block_t *b) {
 
 }
 
+void block_abs_to_time(block_t *b) {
+  assert(b);
+
+  data_t A;
+  data_t ds_1, ds_m, ds_2, s_f; // abscissa
+  data_t dt, dt_1, dt_2, dt_m, dq;
+  data_t v_i, v_m, v_f;
+
+
+  A = b->acc;
+  v_i = b->prof->v_i;
+  v_m = b->prof->v_m;           // maintain/mid-level velocity
+  v_f = b->prof->v_f;
+  s_f = b->length;              // total length of segment
+  ds_1 = b->prof->ds_1;
+  ds_m = b->prof->ds_m;
+  ds_2 = b->prof->ds_2;
+
+  dt_m = 0;
+
+  dt_1 = curvlin_to_time(v_i, A, ds_1);
+  printf("\ndt1 of this block is => %.04f | Length => %.03f | v_i => %.02f\n", dt_1, s_f, v_i);
+  
+  if (ds_2 != 0) {
+    if (ds_m > 0) {
+      dt_2 = ds_2 > 0 ? curvlin_to_time(v_m, A, ds_2) : curvlin_to_time(v_m, -A, ds_2);
+      dt_m = s_f / v_m - (dt_1 + dt_2) / 2.0;
+    }
+    else
+      dt_2 = ds_2 > 0 ? curvlin_to_time(v_i, A, ds_2) : curvlin_to_time(v_i, -A, ds_2);
+  }
+  else
+    dt_2 = 0.0;
+
+  printf("dtm of this block is => %.04f | Length => %.03f | v_m => %.02f\n", dt_m, s_f, v_m);
+  printf("dt2 of this block is => %.04f | Length => %.03f | v_f => %.02f\n", dt_2, s_f, v_f);
+
+  b->prof->dt_1 = dt_1;
+  b->prof->dt_2 = dt_2;
+  b->prof->dt_m = dt_m;
+//   b->prof->a = a;
+//   b->prof->d = d;
+//   b->prof->f = f_m;
+//   b->prof->dt = dt;
+//   b->prof->l = l;
+
+}
+
+static data_t curvlin_to_time(data_t v_0, data_t a, data_t ds) {
+  data_t t1, t2;
+  t1 = (1 / a) * (-v_0 + sqrt((2 * a * fabs(ds)) + pow(v_0, 2)));
+  t2 = (1 / a) * (-v_0 - sqrt((2 * a * fabs(ds)) + pow(v_0, 2)));
+
+  if (t1 > 0) return t1;
+  else if (t2 > 0) return t2;
+  else return 0;
+}
 /***************************************************************************************************/
 
 

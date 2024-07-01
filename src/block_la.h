@@ -71,6 +71,7 @@ point_t *block_interpolate_t(block_t *b, data_t time, data_t *lambda, data_t *sp
 void block_velocities(block_t *b);
 void block_acceleration(block_t *b);
 void block_deceleration(block_t *b);
+void block_abs_to_time(block_t *b);
 /***************************************************************************************************/
 
 

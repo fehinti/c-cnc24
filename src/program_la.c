@@ -192,12 +192,17 @@ void program_lookahead(program_t *p) {
   }
 
   b = NULL;
-
   while ((b = program_prev(p))) {
     if (!block_type(b)) continue;
     block_deceleration(b);
   }
 
+  b = NULL;
+  program_reset(p);
+  while ((b = program_next(p))) {
+    if (!block_type(b)) continue;
+    block_abs_to_time(b);
+  }
 }
 /***************************************************************************************************/
 
