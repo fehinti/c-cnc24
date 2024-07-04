@@ -129,6 +129,7 @@ ccnc_state_t ccnc_do_init(ccnc_state_data_t *data) {
   // 4. print parsed program
   fprintf(stderr, "Current program: %s\n", data->prog_file);
   program_print(data->program, stderr);
+  program_lookahead(data->program);
 
   // 5. sync the machine position to zero
   sp = machine_setpoint(data->machine);

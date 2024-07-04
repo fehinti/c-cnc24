@@ -18,21 +18,32 @@
 
 */
 
+/***************************************************************************************************/
+// LOOK_AHEAD Implementation
+
+// Structure for tracking lookahead buffer velocity profile
+typedef struct
+{
+  data_t v_I, v_F, curr_v;
+  data_t machine_A;
+}lookahead_prof_t;
+
+
+// Buffer of blocks
+#define BLOCK_BUFFER 100
+
+/***************************************************************************************************/
+
 typedef struct program {
   char *filename; // G-code file path
   block_t *first; // First block
   block_t *current;
   block_t *last;
   size_t n; // total number of G-code blocks
+
+  lookahead_prof_t *la_prof;
 } program_t;
 
-/***************************************************************************************************/
-// LOOK_AHEAD Implementation
-
-// Buffer of blocks
-#define BLOCK_BUFFER 100
-
-/***************************************************************************************************/
 
 /*
   _____                 _   _
@@ -58,6 +69,14 @@ program_t *program_new(char const *filename) {
   }
   memset(p, 0, sizeof(*p));
   p->filename = strdup(filename);
+
+  p->la_prof = (lookahead_prof_t *)malloc(sizeof(lookahead_prof_t));
+  if (!p->la_prof)
+  {
+    eprintf("Could not allocate memory for velocity profile\n");
+    return NULL;
+  }
+
   return p;
 }
 
@@ -71,6 +90,8 @@ void program_free(program_t *p) {
     block_free(tmp);
   }
   free(p->filename);
+  if (p->la_prof)
+    free(p->la_prof);
   free(p);
   p = NULL;
 }
@@ -178,16 +199,20 @@ block_t *program_prev(program_t *p) {
 void program_lookahead(program_t *p) {
   assert(p);
   block_t *b = NULL;
+
+  p->la_prof->v_I = 0;
+  p->la_prof->v_F = 0;
+
   program_reset(p);
 
   while ((b = program_next(p))) {
     if (!block_type(b)) continue;
     block_velocities(b);
-  }
-  b = NULL;
-  program_reset(p);
-  while ((b = program_next(p))) {
-    if (!block_type(b)) continue;
+  // }
+  // b = NULL;
+  // program_reset(p);
+  // while ((b = program_next(p))) {
+    // if (!block_type(b)) continue;
     block_acceleration(b);
   }
 
