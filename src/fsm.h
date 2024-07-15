@@ -17,7 +17,11 @@ Functions and types have been generated with prefix "ccnc_"
 #define FSM_H
 #include <stdlib.h>
 #include "machine.h"
+
+/***************************************************************************************************/
+// LOOK_AHEAD Implementation
 #include "program_la.h"
+/***************************************************************************************************/
 
 // State data object
 // By default set to void; override this typedef or load the proper

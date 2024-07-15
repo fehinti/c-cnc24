@@ -29,7 +29,7 @@ typedef struct
 }lookahead_prof_t;
 
 
-// Buffer of blocks
+// Buffer of blocks for Receeding Horizon
 #define BLOCK_BUFFER 100
 
 /***************************************************************************************************/
@@ -208,11 +208,6 @@ void program_lookahead(program_t *p) {
   while ((b = program_next(p))) {
     if (!block_type(b)) continue;
     block_velocities(b);
-  // }
-  // b = NULL;
-  // program_reset(p);
-  // while ((b = program_next(p))) {
-    // if (!block_type(b)) continue;
     block_acceleration(b);
   }
 

@@ -32,7 +32,7 @@ typedef struct
 
   /***************************************************************************************************/
   // LOOK_AHEAD Implementation
-  data_t v_i, v_m, v_f;
+  data_t v_i, v_m, v_f;    // velocities of computed profile
   data_t ds_1, ds_m, ds_2; // abscissa
   /***************************************************************************************************/
 } block_profile_t;
@@ -213,26 +213,6 @@ class_getter(block, block_t, block_t *, prev, prev);
 
 /* METHODS ********************************************************************/
 
-/***************************************************************************************************/
-// LOOK_AHEAD Implementation
-
-// void block_velocities(block_t *b, data_t t, data_t *s) {
-//   assert(b);
-//   data_t r;
-//   data_t dt_1 = b->prof->dt_1;
-//   data_t dt_2 = b->prof->dt_2;
-//   data_t dt_m = b->prof->dt_m;
-//   data_t a = b->prof->a;
-//   data_t d = b->prof->d;
-//   data_t f = b->prof->f;
-
-//   // if (t < 0) {
-//   //   exit;
-//   // }
-//   //  else if
-// }
-/***************************************************************************************************/
-
 data_t block_lambda(block_t *b, data_t t, data_t *s)
 {
   // s - speed (feedrate)
@@ -287,11 +267,6 @@ data_t block_lambda(block_t *b, data_t t, data_t *s)
   *s *= 60; // convert to mm/min
   return r;
 }
-
-// /***************************************************************************************************/
-// // LOOK_AHEAD Implementation
-// point_t *block_interpolate(block_t *b, data_t lambda)
-// /***************************************************************************************************/
 
 point_t *block_interpolate(block_t *b, data_t lambda)
 {
