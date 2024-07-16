@@ -6,7 +6,7 @@
 slprj/
 *.slxc
 *.dSYM
-*.txt
+#*.txt
 .venv
 *:Zone.Identifier
 usr/
